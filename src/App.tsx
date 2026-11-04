@@ -23,7 +23,6 @@ import { Radio, frequencyText } from "./components/Radio";
 import { KEY_HELP } from "./components/keyHelp";
 import {
   createInitialState,
-  createChannel,
   radioReducer,
   getActiveChannel,
   getReception,
@@ -283,19 +282,6 @@ export default function App() {
         setToast("Браузер не разрешил аудио. Нажмите «Звук» ещё раз.");
       }
     }
-  };
-  const riverScenario = () => {
-    const s = createInitialState();
-    s.power = true;
-    s.volume = 0.55;
-    s.banks.A.vfo = createChannel(300150000);
-    s.banks.B.vfo = createChannel(300200000);
-    s.settings.sql = 2;
-    s.memories = structuredClone(state.memories);
-    s.ui.notice =
-      "Речной канал около Долгопрудного · 300.150 МГц. Все реплики вымышлены.";
-    dispatch({ type: "LOAD", state: s });
-    setToast("Речной сценарий загружен. Приём: 5 с, пауза: 7 с.");
   };
   const backup = () => {
     const json = serializeRadio(state);
@@ -734,24 +720,11 @@ export default function App() {
                   <span className="eyebrow">ВИРТУАЛЬНЫЙ ЭФИР</span>
                   <span className="live-dot">SIM</span>
                 </div>
-                <h2>
-                  Речной канал
-                  <br />
-                  около Долгопрудного
-                </h2>
-                <p className="subtle">300.150 МГц · вымышленный сценарий</p>
+                <h2>Учебные станции</h2>
                 <p>
-                  Условные «Вектор» и «Берег» выходят на связь каждые 12 секунд.
-                  Передача длится 5 секунд, затем наступает тишина.
+                  Настройтесь на виртуальную станцию. Передачи чередуются с
+                  паузами, а текущий сигнал отображается ниже.
                 </p>
-                {mode === "free" && (
-                  <button
-                    className="outline-button full-width"
-                    onClick={riverScenario}
-                  >
-                    <RadioTower size={15} /> Загрузить речной сценарий
-                  </button>
-                )}
                 <div className="reception-panel">
                   <div>
                     <span>

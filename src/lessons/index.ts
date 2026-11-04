@@ -39,13 +39,13 @@ function base(previous: RadioState): RadioState {
 }
 
 const ready = (s: RadioState) => s.power && s.ui.screen === "main";
-const RIVER = 300150000;
+const TRAINING_FREQUENCY = 300150000;
 const clearTones = (s: RadioState) =>
   getActiveChannel(s).rxCtcss === null && getActiveChannel(s).rxDcs === null;
 
-function river(previous: RadioState): RadioState {
+function trainingSetup(previous: RadioState): RadioState {
   const s = base(previous);
-  s.banks.A.vfo = createChannel(RIVER);
+  s.banks.A.vfo = createChannel(TRAINING_FREQUENCY);
   s.settings.sql = 2;
   return s;
 }
@@ -53,7 +53,7 @@ function river(previous: RadioState): RadioState {
 function memory(
   s: RadioState,
   slot: number,
-  frequency = RIVER,
+  frequency = TRAINING_FREQUENCY,
   patch: Partial<MemoryChannel> = {},
 ) {
   s.memories[slot] = {
@@ -63,11 +63,11 @@ function memory(
   };
 }
 
-function storedRiver(s: RadioState, slot = 12): boolean {
+function storedTrainingChannel(s: RadioState, slot = 12): boolean {
   const c = s.memories[slot];
   return (
     !!c &&
-    c.frequency === RIVER &&
+    c.frequency === TRAINING_FREQUENCY &&
     c.bandwidth === "WIDE" &&
     c.rxCtcss === null &&
     c.rxDcs === null
@@ -75,15 +75,15 @@ function storedRiver(s: RadioState, slot = 12): boolean {
 }
 
 function scanFixture(previous: RadioState): RadioState {
-  const s = river(previous);
+  const s = trainingSetup(previous);
   s.banks.A.vfo.frequency = 300100000;
   return s;
 }
 
 function dualFixture(previous: RadioState): RadioState {
-  const s = river(previous);
+  const s = trainingSetup(previous);
   s.banks.A.vfo.frequency = 145525000;
-  s.banks.B.vfo = createChannel(RIVER);
+  s.banks.B.vfo = createChannel(TRAINING_FREQUENCY);
   return s;
 }
 
@@ -118,7 +118,7 @@ export function buildTrainingCsv(s: RadioState): string {
 }
 
 function matchingBackup(s: RadioState, text?: string): boolean {
-  if (!text || !storedRiver(s)) return false;
+  if (!text || !storedTrainingChannel(s)) return false;
   try {
     const saved: unknown = JSON.parse(text);
     if (
@@ -250,9 +250,8 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         id: "river-frequency",
-        title: "Речной канал около Долгопрудного",
-        description:
-          "Настройте строку A на 300.150 МГц в VFO. Название сценария и все его переговоры вымышлены.",
+        title: "Настройка учебной частоты",
+        description: "Настройте строку A на 300.150 МГц в VFO.",
         hints: [
           "Частота задаёт положение приёмника в спектре. Здесь нужна точная настройка 300.150 МГц.",
           "Убедитесь, что выбрана строка A и режим VFO. Точка при вводе не нужна.",
@@ -265,7 +264,7 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           s.active === "A" &&
           s.banks.A.mode === "VFO" &&
-          getActiveChannel(s).frequency === RIVER,
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "memory-number",
@@ -291,7 +290,7 @@ export const CHAPTERS: Chapter[] = [
           s.active === "A" &&
           s.banks.A.mode === "MR" &&
           s.banks.A.channel === 12 &&
-          getActiveChannel(s).frequency === RIVER,
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "second-vfo",
@@ -305,11 +304,11 @@ export const CHAPTERS: Chapter[] = [
         ],
         explanation:
           "Каждая строка имеет собственную частоту и режим VFO/MR. Это удобно для подготовки двух направлений приёма; автоматическое наблюдение за ними включается отдельным пунктом TDR.",
-        setup: (previous) => river(previous),
+        setup: (previous) => trainingSetup(previous),
         check: (s) =>
           ready(s) &&
           s.active === "B" &&
-          s.banks.A.vfo.frequency === RIVER &&
+          s.banks.A.vfo.frequency === TRAINING_FREQUENCY &&
           s.banks.B.mode === "VFO" &&
           s.banks.B.vfo.frequency === 300175000,
       },
@@ -332,7 +331,7 @@ export const CHAPTERS: Chapter[] = [
         ],
         explanation:
           "Шаг 25 кГц — это 0.025 МГц. Он влияет на настройку стрелками и частотное сканирование. Шаг не равен ширине принимаемого сигнала: для полосы есть отдельное меню W/N.",
-        setup: (previous) => river(previous),
+        setup: (previous) => trainingSetup(previous),
         check: (s) =>
           ready(s) &&
           getActiveChannel(s).step === 25000 &&
@@ -350,7 +349,7 @@ export const CHAPTERS: Chapter[] = [
         ],
         explanation:
           "WIDE и NARROW — разные полосы приёма FM. Несоответствие полосе передающей станции меняет громкость, искажения и восприимчивость к соседним сигналам. W/N не переключает FM на AM.",
-        setup: (previous) => river(previous),
+        setup: (previous) => trainingSetup(previous),
         check: (s) => ready(s) && getActiveChannel(s).bandwidth === "NARROW",
       },
       {
@@ -366,7 +365,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "CTCSS — непрерывный низкочастотный тон, DCS — цифровой код. Они управляют открытием звука, но не шифруют речь и не создают отдельную частоту. В этой модели, как в формате заводского канала CHIRP, на приём выбирается один тип кода.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.banks.A.vfo.rxDcs = "023N";
           return s;
         },
@@ -385,7 +384,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Индикатор несущей и слышимый звук — разные признаки. Кроме SQL, звуку могут мешать тоновый фильтр, нулевая громкость или неверная модуляция. Здесь эти параметры уже исправны.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.settings.sql = 9;
           return s;
         },
@@ -394,7 +393,7 @@ export const CHAPTERS: Chapter[] = [
           !s.monitor &&
           s.settings.sql === 2 &&
           getReception(s).audible &&
-          getReception(s).frequency === RIVER,
+          getReception(s).frequency === TRAINING_FREQUENCY,
       },
     ],
   },
@@ -416,11 +415,11 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "MEM-CH копирует частоту и параметры активного канала в выбранную ячейку. Появление SURE? ещё не означает, что запись произошла: её подтверждает следующее M.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           delete s.memories[12];
           return s;
         },
-        check: (s) => ready(s) && storedRiver(s),
+        check: (s) => ready(s) && storedTrainingChannel(s),
       },
       {
         id: "recall-channel",
@@ -444,7 +443,7 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           s.banks.A.mode === "MR" &&
           s.banks.A.channel === 12 &&
-          getActiveChannel(s).frequency === RIVER,
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "copy-channel",
@@ -459,14 +458,17 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Копия занимает другую ячейку. Это удобно, если одной частоте нужны разные тоновые фильтры или разные списки сканирования. Номер канала не является частотой.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           memory(s, 12);
           delete s.memories[21];
           s.banks.A.mode = "MR";
           s.banks.A.channel = 12;
           return s;
         },
-        check: (s) => ready(s) && storedRiver(s, 12) && storedRiver(s, 21),
+        check: (s) =>
+          ready(s) &&
+          storedTrainingChannel(s, 12) &&
+          storedTrainingChannel(s, 21),
       },
       {
         id: "delete-channel",
@@ -481,14 +483,15 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "DEL_CH очищает конкретную ячейку памяти. Это отдельная операция с подтверждением, чтобы обычное перемещение по списку не уничтожало сохранённые настройки.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           memory(s, 12);
           memory(s, 21);
           s.banks.A.mode = "MR";
           s.banks.A.channel = 12;
           return s;
         },
-        check: (s) => ready(s) && !s.memories[21] && storedRiver(s, 12),
+        check: (s) =>
+          ready(s) && !s.memories[21] && storedTrainingChannel(s, 12),
       },
     ],
   },
@@ -512,8 +515,8 @@ export const CHAPTERS: Chapter[] = [
         setup: (previous) => scanFixture(previous),
         check: (s) =>
           ready(s) &&
-          s.scan?.foundFrequency === RIVER &&
-          getActiveChannel(s).frequency === RIVER,
+          s.scan?.foundFrequency === TRAINING_FREQUENCY &&
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "scan-membership",
@@ -528,8 +531,8 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "S-ADD1 и S-ADD2 задают состав списков. S-LIST выбирает, какой из них будет сканироваться. Добавление канала в список ещё не запускает поиск.",
         setup: (previous) => {
-          const s = river(previous);
-          memory(s, 12, RIVER, { list1: true, list2: false });
+          const s = trainingSetup(previous);
+          memory(s, 12, TRAINING_FREQUENCY, { list1: true, list2: false });
           s.banks.A.mode = "MR";
           s.banks.A.channel = 12;
           return s;
@@ -550,9 +553,9 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Если нужный канал не входит в выбранный список, MR-сканер его не проверит. Для проверки состава на рации есть пункты 32 SLIST1 и 33 SLIST2.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.memories = {};
-          memory(s, 12, RIVER, { list2: true });
+          memory(s, 12, TRAINING_FREQUENCY, { list2: true });
           memory(s, 13, 300175000, { list2: true });
           s.banks.A.mode = "MR";
           s.banks.A.channel = 13;
@@ -563,7 +566,7 @@ export const CHAPTERS: Chapter[] = [
           s.settings.scanList === 2 &&
           s.banks.A.mode === "MR" &&
           s.banks.A.channel === 12 &&
-          s.scan?.foundFrequency === RIVER,
+          s.scan?.foundFrequency === TRAINING_FREQUENCY,
       },
       {
         id: "scan-stop",
@@ -582,8 +585,8 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           s.settings.scanResume === "SE" &&
           s.scan?.active === false &&
-          s.scan.foundFrequency === RIVER &&
-          getActiveChannel(s).frequency === RIVER,
+          s.scan.foundFrequency === TRAINING_FREQUENCY &&
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
     ],
   },
@@ -613,7 +616,7 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           s.active === "A" &&
           getActiveChannel(s, "A").frequency === 145525000 &&
-          getActiveChannel(s, "B").frequency === RIVER,
+          getActiveChannel(s, "B").frequency === TRAINING_FREQUENCY,
       },
       {
         id: "dual-enable",
@@ -679,7 +682,7 @@ export const CHAPTERS: Chapter[] = [
           s.active === "A" &&
           s.settings.tdr === "OFF" &&
           getActiveChannel(s, "A").frequency === 145525000 &&
-          getActiveChannel(s, "B").frequency === RIVER,
+          getActiveChannel(s, "B").frequency === TRAINING_FREQUENCY,
       },
     ],
   },
@@ -701,7 +704,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Громкость управляет уровнем в динамике после приёма сигнала. Высокий SQL или несовпадение тона этим регулятором не исправить; здесь единственная неисправность — нулевая громкость.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.volume = 0;
           return s;
         },
@@ -709,7 +712,7 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           s.volume >= 0.35 &&
           s.volume <= 0.8 &&
-          getActiveChannel(s).frequency === RIVER,
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "fix-squelch",
@@ -724,7 +727,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "В диагностике Monitor полезен для проверки наличия звука, но постоянно обходить им проблему неудобно. Правильное решение здесь — подобрать порог шумоподавителя.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.settings.sql = 9;
           return s;
         },
@@ -732,13 +735,13 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           !s.monitor &&
           s.settings.sql === 2 &&
-          getActiveChannel(s).frequency === RIVER,
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "fix-ctcss",
         title: "Уберите чужой субтон",
         description:
-          "На речном учебном канале ожидается CTCSS 88.5 Гц, которого в сигнале нет. Отключите приёмный фильтр.",
+          "На учебном канале ожидается CTCSS 88.5 Гц, которого в сигнале нет. Отключите приёмный фильтр.",
         hints: [
           "Индикатор сигнала может появляться, хотя тоновый фильтр не открывает динамик.",
           "Исправьте именно 05 R_CTCS; T_CTCS влияет только на передаваемый тон.",
@@ -747,7 +750,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Приёмник с R_CTCS = 88.5 воспроизводит только сигналы с соответствующим тоном. Если он неизвестен или отсутствует, приёмный тон отключают. Это не настройка приватности.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.banks.A.vfo.rxCtcss = 88.5;
           return s;
         },
@@ -755,7 +758,7 @@ export const CHAPTERS: Chapter[] = [
           ready(s) &&
           !s.monitor &&
           clearTones(s) &&
-          getActiveChannel(s).frequency === RIVER,
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY,
       },
       {
         id: "fix-frequency",
@@ -770,14 +773,14 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Соседние каналы разделены по частоте. Шаг стрелки помогает исправить небольшую ошибку настройки. Мощность TXP не улучшает приём и в этой ситуации не нужна.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.banks.A.vfo.frequency = 300175000;
           s.banks.A.vfo.step = 25000;
           return s;
         },
         check: (s) =>
           ready(s) &&
-          getActiveChannel(s).frequency === RIVER &&
+          getActiveChannel(s).frequency === TRAINING_FREQUENCY &&
           getActiveChannel(s).step === 25000 &&
           s.settings.sql === 2 &&
           clearTones(s),
@@ -802,11 +805,11 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "В таблице CHIRP номер, частота, модуляция и тоновый режим — отдельные поля. Для выбранных заводских UV-K5/UV-K5(8) используется соответствующий драйвер Quansheng UV-K5. Драйверы альтернативных прошивок сюда не подмешиваются.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           delete s.memories[12];
           return s;
         },
-        check: (s) => ready(s) && storedRiver(s),
+        check: (s) => ready(s) && storedTrainingChannel(s),
       },
       {
         id: "chirp-backup",
@@ -821,7 +824,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "На реальной рации сначала выполняют Radio → Download From Radio, затем сохраняют исходный образ .img. В тренажёре скачивается собственный JSON; это не EEPROM, не прошивка и не образ для записи в радиостанцию.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           memory(s, 12);
           return s;
         },
@@ -840,7 +843,7 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Подсказка драйвера uvk5.py требует включить рацию до подключения mic/spkr-кабеля. В CHIRP затем выбирают фактический последовательный порт, производителя и подходящую модель, выполняют Download From Radio и сохраняют .img. Обычный USB-C у рассмотренной классической модели служит зарядке.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           s.power = false;
           return s;
         },
@@ -859,12 +862,12 @@ export const CHAPTERS: Chapter[] = [
         explanation:
           "Этот CSV — учебная таблица, а не готовый образ или файл импорта CHIRP. В самом CHIRP CSV импортируют в считанный образ своей рации; напрямую загрузить CSV в устройство нельзя. Копия .img хранит больше настроек, чем список каналов.",
         setup: (previous) => {
-          const s = river(previous);
+          const s = trainingSetup(previous);
           memory(s, 12);
           return s;
         },
         check: (s, context) =>
-          storedRiver(s) &&
+          storedTrainingChannel(s) &&
           typeof context?.exportCsv === "string" &&
           context.exportCsv === buildTrainingCsv(s),
       },

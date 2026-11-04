@@ -21,8 +21,8 @@ export interface StationSignal extends Omit<VirtualStation, "messages"> {
 // Entirely fictional. Frequencies are teaching targets, not a directory of actual users.
 export const STATIONS: VirtualStation[] = [
   {
-    id: "river",
-    name: "Речной канал · учебный",
+    id: "training",
+    name: "Учебная станция",
     frequency: 300150000,
     strength: 7,
     ctcss: null,
@@ -33,9 +33,9 @@ export const STATIONS: VirtualStation[] = [
     duration: 5000,
     phase: 0,
     messages: [
-      "«Учебный катер „Вектор“, проверка связи. Стоим у условного причала.»",
-      "«Учебный пост „Берег“, принимаю. Следующий сеанс по расписанию.»",
-      "«„Вектор“ — „Берегу“: тренировка завершена, переходим на приём.»",
+      "«Учебная станция, проверка связи. Как слышно?»",
+      "«Принимаю хорошо. Следующий сеанс по расписанию.»",
+      "«Проверка завершена, переходим на приём.»",
     ],
   },
   {

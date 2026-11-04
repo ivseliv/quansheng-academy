@@ -156,7 +156,7 @@ describe("deterministic virtual ether and scan", () => {
     expect(getReception(s)).toMatchObject({
       carrier: true,
       audible: true,
-      stationId: "river",
+      stationId: "training",
     });
     s.settings.sql = 9;
     expect(getReception(s)).toMatchObject({ carrier: true, audible: false });
